@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtEmotionMapper">
+	<select id="getUserEmotions" resultType="com.m2m.entity.ExtUserEmotion">
+		select	r.id as rid,
+				r.create_time as createTime,
+				r.create_time as timeInterval,
+				r.freeValue,
+				r.happyValue,
+				i.id as eid,
+				i.emotionName,
+				d.extra,
+				d.extra as content,
+				d.h,
+				d.w,
+				d.id as pid,
+				d.image,
+				d.thumb,
+				d.thumb_h,
+				d.thumb_w,
+				d.title
+		from emotion_record r,emotion_info i,emotion_pack_detail d
+		where r.emotionId=i.id and i.emotionPackId=d.id
+		and r.uid=#{uid}
+		order by r.id desc limit #{limitSize}
+	</select>
+
+
+</mapper>

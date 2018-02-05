@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtFriendMapper">
+	<select id="queryUserFriends" resultType="com.m2m.entity.ExtFriend">
+		select 	p.uid,
+				p.nick_name as nickName,
+				p.avatar,
+				p.avatar_frame as avatarFrame,
+				p.v_lv,
+				p.industry_id as industryId,
+				ifnull(i.industry_name, '') as industry,
+				p.introduced
+		from user_friend f,user_profile p left join user_industry i on p.industry_id=i.id
+		where f.target_uid=p.uid
+		and f.source_uid=#{uid}
+		<if test="keyword!=null and keyword!=''">
+			and p.nick_name like concat('%',#{keyword},'%')
+		</if>
+		and f.status=0
+		order by f.id desc limit #{start},#{pageSize}
+	</select>
+
+	<delete id="deleteHalfFriend">
+  		delete from user_friend
+		where (source_uid=#{sourceUid} and target_uid=#{targetUid})
+		or (source_uid=#{targetUid} and target_uid=#{sourceUid})
+  	</delete>
+  	
+  	<select id="queryUserFriendApply" resultType="com.m2m.entity.ExtFriendApply">
+  		select 	u.uid,
+  				u.nick_name as nickName,
+  				u.avatar,
+  				u.avatar_frame as avatarFrame,
+  				u.v_lv,
+  				u.introduced,
+  				u.industry_id as industryId,
+  				ifnull(i.industry_name, '') as industry,
+				a.content,
+				a.status,
+				a.create_time as applyTime
+		from user_friend_apply a,user_profile u LEFT JOIN user_industry i on u.industry_id=i.id
+		where a.source_uid=u.uid
+		and a.target_uid=#{uid}
+		and a.status!=2
+		order by a.id desc limit #{start},#{pageSize}
+  	</select>
+  	
+  	<select id="queryUserFriendRecList" resultType="com.m2m.entity.ExtRecFriend">
+  		select 	u.uid,
+  				u.nick_name as nickName,
+  				u.avatar,
+  				u.avatar_frame as avatarFrame,
+  				u.v_lv,
+  				u.industry_id as industryId,
+  				ifnull(i.industry_name, '') as industry,
+  				r.description as content
+		from user_friend_reclist r,user_profile u LEFT JOIN user_industry i on u.industry_id=i.id
+		where r.rec_uid=u.uid
+		and r.uid=#{uid}
+		and r.status=0
+		order by r.id desc 
+		<if test="limit &gt; 0">
+			limit #{limit}
+		</if>
+  	</select>
+  	
+  	<select id="getMiddlemanList" resultType="com.m2m.entity.Middleman">
+  		select 	p.uid,
+  				p.nick_name as nickName,
+  				p.avatar,
+  				p.avatar_frame as avatarFrame,
+  				p.v_lv,
+  				r.description as content
+		from user_friend f, user_friend_reclist r,user_profile p
+		where f.target_uid=r.uid
+		and f.target_uid=p.uid
+		and f.status=0
+		and r.status=0
+		and f.silence_time &lt; now()
+		and f.source_uid=#{uid}
+		and r.rec_uid=#{recUid}
+		<if test="fromUid &gt; 0">
+			and f.target_uid=#{fromUid}
+		</if>
+		order by r.id desc
+		<if test="limit &gt; 0">
+			limit #{limit}
+		</if>
+  	</select>
+</mapper>

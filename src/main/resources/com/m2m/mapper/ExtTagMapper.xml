@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtTagMapper">
+	<update id="removeUserDislikeUserTags">
+		update user_tag set type=0 where type=2 and uid = #{uid}
+		and tag_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+	</update>	
+	
+	<select id="getTopicTagsByTags" resultType="com.m2m.domain.TopicTag">
+		SELECT * 
+		FROM topic_tag 
+		WHERE tag in 
+		<foreach collection="list" index="index" item="item" open="(" close=")" separator=",">
+			#{item}
+		</foreach>
+		and status = 0
+	</select>
+	
+	<select id="getExistTopicTagByTags" resultType="java.lang.String">
+		SELECT tag 
+		FROM topic_tag 
+		WHERE tag in 
+		<foreach collection="list" index="index" item="item" open="(" close=")" separator=",">
+			#{item}
+		</foreach>
+		and status = 0
+	</select>
+	
+	<insert id="saveNewTopicTag" useGeneratedKeys="true" keyProperty="id">
+		insert into topic_tag (tag) values 
+		<foreach collection="list" index="index" item="item" open="" close="" separator=",">
+			(#{item.tag})
+		</foreach>
+	</insert>
+	
+	<insert id="saveTopicTagDetail" useGeneratedKeys="true" keyProperty="id">
+		insert into topic_tag_detail(tag,tag_id,topic_id,uid,auto_tag) values 
+		<foreach collection="list" index="index" item="item" open="" close="" separator=",">
+			(#{item.tag},#{item.tagId},#{item.topicId},#{item.uid},#{item.autoTag})
+		</foreach>
+	</insert>
+	<select id="getAdBannerByTagId" resultType="com.m2m.entity.ExtAdBanner">
+		select DISTINCT a.banner_id as bannerId,b.ad_banner_height as
+		adBannerHeight,b.ad_banner_width as adBannerWidth,a.position FROM
+		ad_tag a,ad_banner b LEFT JOIN (
+		select i.banner_id,1 as has from
+		ad_info i where i.status=0 and i.effective_time>NOW()
+		group by i.banner_id) m on b.id=m.banner_id WHERE a.banner_id=b.id AND
+		b.type IN (0,2)
+		AND tag_id=#{tagId} and m.has is not null
+	</select>
+
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+    <context id="MysqlTables" targetRuntime="MyBatis3">
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://192.168.89.80:3306/apps"
+                        userId="me2me"
+                        password="Sp@Metro#79">
+        </jdbcConnection>
+
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+        </javaTypeResolver>
+
+        <javaModelGenerator targetPackage="com.m2m.domain" targetProject="./src/main/java">
+            <property name="enableSubPackages" value="true"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+
+        <sqlMapGenerator targetPackage="com.m2m.mapper" targetProject="./src/main/resources">
+            <property name="enableSubPackages" value="true"/>
+        </sqlMapGenerator>
+
+        <javaClientGenerator type="MIXEDMAPPER" targetPackage="com.m2m.mapper" targetProject="./src/main/java">
+            <property name="enableSubPackages" value="true"/>
+        </javaClientGenerator>
+
+		
+		
+		<!-- 		
+		<table tableName="activity" domainObjectName="Activity"/> 
+		<table tableName="app_lightbox_source" domainObjectName="AppLightboxSource"/>
+		<table tableName="ad_banner" domainObjectName="AdBanner"/>
+		<table tableName="ad_info" domainObjectName="AdInfo"/>
+		<table tableName="app_http_access" domainObjectName="AppHttpAccess"/>
+		<table tableName="app_config" domainObjectName="AppConfig"/>
+		<table tableName="app_download_log" domainObjectName="AppDownloadLog"/>
+		<table tableName="android_crash" domainObjectName="AndroidCrash"/>
+		<table tableName="app_ui_control" domainObjectName="AppUiControl"/>
+		<table tableName="block_topic" domainObjectName="BlockTopic"/>
+		<table tableName="billboard" domainObjectName="Billboard"/>
+		<table tableName="billboard_details" domainObjectName="BillboardDetails"/>
+		<table tableName="billboard_relation" domainObjectName="BillboardRelation"/>
+		<table tableName="billboard_list" domainObjectName="BillboardList"/>
+		<table tableName="block_topic" domainObjectName="BlockTopic"/>
+		<table tableName="content" domainObjectName="Content"/>
+		<table tableName="content_tags" domainObjectName="ContentTags"/>
+    	<table tableName="content_tags_details" domainObjectName="ContentTagsDetails"/>
+    	<table tableName="content_image" domainObjectName="ContentImage"/>
+		<table tableName="content_likes_details" domainObjectName="ContentLikesDetails"/>
+		<table tableName="dictionary" domainObjectName="Dictionary"/>
+		<table tableName="dictionary_type" domainObjectName="DictionaryType"/>
+		<table tableName="emotion_record" domainObjectName="EmotionRecord"/>
+		<table tableName="emotion_info" domainObjectName="EmotionInfo"/>
+		<table tableName="emotion_pack" domainObjectName="EmotionPack"/>
+    	<table tableName="emotion_pack_detail" domainObjectName="EmotionPackDetail"/>
+		<table tableName="gift_history" domainObjectName="GiftHistory"/>
+		<table tableName="gift_info" domainObjectName="GiftInfo"/>
+		<table tableName="ios_crash" domainObjectName="IosCrash"/>
+		<table tableName="im_config" domainObjectName="ImConfig"/>
+		<table tableName="live_favorite" domainObjectName="LiveFavorite"/>
+		<table tableName="lottery_info" domainObjectName="LotteryInfo"/>
+		<table tableName="lottery_content" domainObjectName="LotteryContent"/>
+		<table tableName="lottery_win" domainObjectName="LotteryWin"/>
+		<table tableName="quotation_info" domainObjectName="QuotationInfo"/>
+		<table tableName="robot_info" domainObjectName="RobotInfo"/>
+		<table tableName="rule_log" domainObjectName="RuleLog"/>
+		<table tableName="system_config" domainObjectName="SystemConfig"/>
+		<table tableName="tag_train_sample" domainObjectName="TagTrainSample"/>
+		<table tableName="tease_info" domainObjectName="TeaseInfo"/>
+		<table tableName="topic" domainObjectName="Topic"/>
+        <table tableName="topic_aggregation" domainObjectName="TopicAggregation"/>
+    	<table tableName="topic_fragment" domainObjectName="TopicFragment"/>
+    	<table tableName="topic_fragment_template" domainObjectName="TopicFragmentTemplate"/>
+    	<table tableName="topic_tag" domainObjectName="TopicTag"/>
+    	<table tableName="topic_tag_detail" domainObjectName="TopicTagDetail"/>
+    	<table tableName="topic_bad_tag" domainObjectName="TopicBadTag"/>
+    	<table tableName="topic_user_forbid" domainObjectName="TopicUserForbid"/>
+    	<table tableName="topic_image" domainObjectName="TopicImage"/>
+    	<table tableName="topic_user_config" domainObjectName="TopicUserConfig"/>
+    	<table tableName="topic_read_his" domainObjectName="TopicReadHis"/>
+    	<table tableName="topic_news" domainObjectName="TopicNews"/>
+    	<table tableName="topic_category" domainObjectName="TopicCategory"/>
+    	<table tableName="topic_fragment_like_his" domainObjectName="TopicFragmentLikeHis"/>
+    	<table tableName="topic_given" domainObjectName="TopicGiven"/>
+    	<table tableName="third_part_user" domainObjectName="ThirdPartUser"/>
+    	<table tableName="user" domainObjectName="User"/>
+    	<table tableName="user_gag" domainObjectName="UserGag"/>
+    	<table tableName="user_token" domainObjectName="UserToken"/>
+    	<table tableName="user_follow" domainObjectName="UserFollow"/>
+    	<table tableName="user_profile" domainObjectName="UserProfile"/>
+    	<table tableName="user_tag" domainObjectName="UserTag"/>
+    	<table tableName="user_first_log" domainObjectName="UserFirstLog"/>
+    	<table tableName="user_last_channel" domainObjectName="UserLastChannel"/>
+    	<table tableName="user_notice" domainObjectName="UserNotice"/>
+    	<table tableName="user_notice_unread" domainObjectName="UserNoticeUnread"/>
+    	<table tableName="user_visit_log" domainObjectName="UserVisitLog"/>
+    	<table tableName="user_steal_log" domainObjectName="UserStealLog"/>
+    	<table tableName="user_invitation_his" domainObjectName="UserInvitationHis"/>
+    	<table tableName="user_industry" domainObjectName="UserIndustry"/>
+    	<table tableName="user_industry_wrong" domainObjectName="UserIndustryWrong"/>
+    	<table tableName="user_friend" domainObjectName="UserFriend"/>
+    	<table tableName="user_friend_apply" domainObjectName="UserFriendApply"/>
+    	<table tableName="user_friend_reclist" domainObjectName="UserFriendReclist"/>
+    	<table tableName="user_friend_message" domainObjectName="UserFriendMessage"/>
+    	<table tableName="user_friend_his" domainObjectName="UserFriendHis"/>
+    	<table tableName="user_no" domainObjectName="UserNo"/>
+    	<table tableName="user_hobby" domainObjectName="UserHobby"/>
+    	<table tableName="user_famous" domainObjectName="UserFamous"/>
+    	<table tableName="vote_info" domainObjectName="VoteInfo"/>
+    	<table tableName="vote_option" domainObjectName="VoteOption"/>
+    	<table tableName="vote_record" domainObjectName="VoteRecord"/>
+    	<table tableName="version_control" domainObjectName="VersionControl"/>
+    	<table tableName="version_channel_download" domainObjectName="VersionChannelDownload"/>
+    	<table tableName="open_device_count" domainObjectName="OpenDeviceCount"/>
+    	-->
+    	
+		
+    	
+    	
+    	
+    	
+    </context>
+</generatorConfiguration>

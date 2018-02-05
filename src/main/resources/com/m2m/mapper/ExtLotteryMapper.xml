@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtLotteryMapper">
+
+	<select id="getJoinLotteryUsers" resultType="com.m2m.entity.ExtJoinLotteryUser">
+		select 	l.id AS sinceId,
+				u.uid,
+				u.avatar,
+				u.avatar_frame as avatarFrame,
+				u.nick_name as nickName,
+				u.v_lv,
+				u.level,
+				l.content,
+				IF(p.id is null,0,1) AS prohibit,
+				l.create_time as createTime
+		FROM (lottery_content l,user_profile u) 
+		LEFT JOIN lottery_prohibit p ON p.lottery_id=l.lottery_id AND u.uid = p.uid
+		WHERE l.uid = u.uid 
+		AND l.lottery_id =#{lotteryId}
+		<if test="sinceId != -1">
+			and l.id &lt; #{sinceId}
+		</if>
+		ORDER BY l.id DESC limit #{limit}
+	</select>
+	
+	<select id="getLotteryWinUserList" resultType="com.m2m.entity.ExtLotteryWinUser">
+		select 
+		u.uid,
+		u.avatar,
+		u.avatar_frame,
+		u.nick_name,
+		u.v_lv,
+		u.level 
+		FROM 
+		user_profile u ,
+		lottery_win l 
+		WHERE 
+		l.uid = u.uid 
+		AND l.lottery_id = #{lotteryId}
+	</select>
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtRobotInfoMapper">
+
+	<select id="getRandomRobotInfo" resultType="com.m2m.domain.RobotInfo">
+		select 	id,
+				uid,
+				create_time as createTime,
+				type
+		from robot_info 
+		where type=0 
+		ORDER BY RAND() limit 1
+	</select>
+
+	<select id="getQuotationInfo" resultType="com.m2m.domain.QuotationInfo">
+    	select 	id,
+    			quotation,
+    			type,
+    			create_time as createTime
+    	from quotation_info 
+    	<if test="type != -1">
+    		where type=#{type,jdbcType=INTEGER}
+    	</if>
+    	ORDER BY RAND() limit 1
+  	</select>
+
+	<select id="selectListQuotationInfo" resultType="com.m2m.domain.QuotationInfo" parameterType="int">
+    	select 	id,
+    			quotation,
+    			type,
+    			create_time as createTime
+    	from quotation_info 
+    	ORDER BY RAND() limit #{limit}
+  	</select>
+</mapper>

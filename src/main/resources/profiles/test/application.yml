@@ -1,0 +1,35 @@
+logging:
+  config: classpath:logback-spring.xml
+  dir: /alidata/logs
+  
+mybatis:
+  config: classpath:mybatis-config.xml
+  
+spring:
+  datasource:
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://10.47.51.228:3306/apps?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    username: me2me
+    password: me2me@Sp#23_k
+  redis:
+    host: 10.47.54.56
+    port: 6379
+    database: 0
+    
+server:
+  port: 9090
+
+app:
+  push:
+    IOS_PUSH_ENV: dev
+  live_web: https://testwebapp.me-to-me.com/ld/
+
+im: 
+  app: 
+    key: c9kqb3rdcv91j
+    secret: dSPWbJVHlNjrN
+
+proxy:
+  status: enabled
+  host: 10.47.51.228
+  port: 3128

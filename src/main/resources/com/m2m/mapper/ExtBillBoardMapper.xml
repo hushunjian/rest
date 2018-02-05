@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtBillBoardMapper">
+	<select id="getActiveUserBillboard" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	m.uid as targetId,
+				m.tid as sinceId,
+				2 as type
+		from (
+				select 	t.uid,
+						min(t.id) as tid
+				from topic t 
+				where t.status=0 
+				group by t.uid
+		) m
+		where m.tid &lt; #{sinceId}
+		and m.uid not in (select u.uid from user_profile u where u.nick_name like '%米汤客服%')
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and m.uid not in 
+			<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+				#{uid}
+			</foreach>
+		</if>
+		order by m.tid desc limit #{pageSize}
+	</select>
+	
+	<select id="getInteractionHottestKingdomBillboard" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	t.id as targetId,
+				m.cc as sinceId,
+				1 as type
+		from topic t,content c,(
+			select 	f.topic_id,
+					count(1) as cc
+			from topic_fragment f 
+			where f.type not in (0,12,13)
+			and f.create_time>date_add(now(), interval -1 day)
+			group by f.topic_id
+		) m 
+		where t.id=c.forward_cid 
+		and c.type=3 
+		and t.sub_type =0
+		and t.id=m.topic_id 
+		and m.cc &lt; #{sinceId}
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and t.uid not in 
+			<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+				#{uid}
+			</foreach>
+		</if>
+		order by cc DESC limit #{pageSize}
+	</select>
+	
+	<select id="getLivesByUpdateTime" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	t.id as targetId,
+				t.long_time as sinceId,
+				1 as type
+		from topic t 
+		where t.status=0 
+		and t.sub_type =0
+		and t.long_time &lt; #{sinceId}
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and t.uid not in 
+			<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+				#{uid}
+			</foreach>
+		</if>
+		order by t.long_time desc limit #{pageSize}
+	</select>
+	
+	<select id="getNewPeople" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	u.uid as targetId,
+				u.id as sinceId,
+				2 as type
+		from user_profile u,(
+			select 	t.uid,
+					count(1) as cc 
+			from topic t
+			group by t.uid
+		) m 
+		where u.uid=m.uid
+		and u.nick_name not like '%米汤客服%'
+		and u.id &lt; #{sinceId}
+		<if test="sex == 0">
+			and u.gender!=1
+		</if>
+		<if test="sex == 1">
+			and u.gender=1
+		</if>
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and u.uid not in 
+			<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+				#{uid}
+			</foreach>
+		</if>
+		order by u.id DESC limit #{pageSize}
+	</select>
+	
+	<select id="getNewRegisterUsers" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	p.uid as targetId,
+				p.id as sinceId,
+				2 as type
+		from user_profile p
+		where p.nick_name not like '%米汤客服%'
+		and p.id &lt; #{sinceId}
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and p.uid not in 
+			<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+				#{uid}
+			</foreach>
+		</if>
+		order by p.id desc limit #{pageSize}
+	</select>
+	
+	<select id="fansBillboard" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.uid as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				2 as type
+		from (
+			select 	u.uid
+			from user_profile u,(
+				select 	f.target_uid, 
+						count(DISTINCT f.source_uid) as fanscount
+				from user_follow f 
+				group by f.target_uid
+			) m
+			where u.uid=m.target_uid 
+			and u.nick_name not like '%米汤客服%'
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and u.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by m.fanscount desc,u.uid desc limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="kingdomPriceList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select t.id 
+			from topic t 
+			where 1=1
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by t.price desc,t.id desc limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="kingdomIncrPriceList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select t.id 
+			from topic_data d,topic t 
+			where d.topic_id=t.id
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by d.last_price_incr desc,t.id limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="tagKingdomPriceList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select 	t.id,
+					max(t.price) as pri 
+			from topic_tag_detail d,topic t
+			where d.topic_id=t.id 
+			and d.status=0
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			and d.tag = #{tag}
+			group by t.id 
+			order by pri desc,t.id DESC limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="tagKingdomIncrPriceList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select 	t.id,
+					max(td.last_price_incr) as pri 
+			from topic_tag_detail d,topic t,topic_data td
+			where d.topic_id=t.id 
+			and t.id=td.topic_id
+			and d.status=0
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			and d.tag = #{tag}
+			group by t.id 
+			order by pri desc,t.id desc limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="userCoinList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.uid as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				2 as type
+		from (
+			select 	u.uid 
+			from user_profile u
+			where u.nick_name not like '%米汤客服%'
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and u.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by u.available_coin desc,u.id desc limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="shareUserList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.uid as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				2 as type
+		from (
+			select 	p.uid,
+					m.hcount 
+			from user_profile p,(
+				select 	h.uid,
+						count(1) as hcount 
+				from content_share_history h
+				where h.create_time>='2017-08-07 00:00:00' 
+				group by h.uid
+			) m
+			where p.uid=m.uid 
+			and p.nick_name not like '%米汤客服%'
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and p.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by m.hcount desc,p.uid limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="outReadKingdomList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select 	t.id,
+					m.tcount 
+			from topic t,(
+				select 	h.topic_id,
+						count(1) as tcount 
+				from topic_read_his h
+				where h.create_time>='2017-08-07 00:00:00'
+				and h.in_app=0 
+				group by h.topic_id
+			) m
+			where t.id=m.topic_id
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			order by m.tcount desc,t.id limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="kingdomLotteryList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.topic_id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select 	t.topic_id,
+					max(id) as maxid 
+			from lottery_info t
+			where t.status=0 
+			and t.end_time>now()
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			group by t.topic_id 
+			order by maxid desc limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+	
+	<select id="goodNewKingdomList" resultType="com.m2m.entity.BillBoardListDTO">
+		select 	x.topic_id as targetId,
+				@rownum:=@rownum+1 as sinceId,
+				1 as type
+		from (
+			select 	f.topic_id,
+					count(DISTINCT DATE_FORMAT(f.create_time,'%Y%m%d')) as cc,
+					max(f.create_time) as maxtime,
+					max(t.price) as pp
+			from topic t,topic_fragment f 
+			where t.id=f.topic_id
+			and t.create_time&gt;='#{preFiveDay} 00:00:00'
+			and t.create_time&lt;='#{preFiveDay} 23:59:59'
+			and f.extra not like '%image_daycard%'
+			and f.type in (0,3,11,12,13,15,52,55)
+			and f.status=1
+			<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+				and t.uid not in 
+				<foreach close=")" collection="blacklistUids" item="uid" open="(" separator=",">
+					#{uid}
+				</foreach>
+			</if>
+			group by f.topic_id
+			having maxtime>='#{today} 00:00:00' and cc>=4
+			order by pp desc,f.topic_id ASC limit #{start},#{pageSize}
+		) x,(select @rownum:=#{start}) r
+	</select>
+</mapper>

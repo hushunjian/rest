@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtVoteMapper">
+
+	<select id="getVoteOptions" resultType="com.m2m.entity.ExtVoteOptionCount">
+		select 	o.id as optionId,
+				o.optionName,
+				IFNULL(m.cc,0) as recordCount
+		from vote_option o LEFT JOIN (
+			select 	r.optionId,
+					count(1) as cc
+			from vote_record r
+			where r.voteId=#{voteId}
+			group by r.optionId
+		) m on o.id=m.optionId
+		where o.voteId=#{voteId}
+		order by o.id
+	</select>
+</mapper>

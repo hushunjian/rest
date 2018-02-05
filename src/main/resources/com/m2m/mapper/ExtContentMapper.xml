@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtContentMapper">
+  <resultMap id="BaseResultMap" type="com.m2m.domain.Content">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="uid" jdbcType="BIGINT" property="uid" />
+    <result column="forward_cid" jdbcType="BIGINT" property="forwardCid" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="feeling" jdbcType="VARCHAR" property="feeling" />
+    <result column="type" jdbcType="INTEGER" property="type" />
+    <result column="conver_image" jdbcType="VARCHAR" property="converImage" />
+    <result column="forward_title" jdbcType="VARCHAR" property="forwardTitle" />
+    <result column="forward_url" jdbcType="VARCHAR" property="forwardUrl" />
+    <result column="content_type" jdbcType="INTEGER" property="contentType" />
+    <result column="thumbnail" jdbcType="VARCHAR" property="thumbnail" />
+    <result column="hot_value" jdbcType="INTEGER" property="hotValue" />
+    <result column="person_count" jdbcType="INTEGER" property="personCount" />
+    <result column="review_count" jdbcType="INTEGER" property="reviewCount" />
+    <result column="like_count" jdbcType="INTEGER" property="likeCount" />
+    <result column="favorite_count" jdbcType="INTEGER" property="favoriteCount" />
+    <result column="read_count" jdbcType="INTEGER" property="readCount" />
+    <result column="read_count_dummy" jdbcType="INTEGER" property="readCountDummy" />
+    <result column="is_top" jdbcType="INTEGER" property="isTop" />
+    <result column="authorization" jdbcType="INTEGER" property="authorization" />
+    <result column="rights" jdbcType="INTEGER" property="rights" />
+    <result column="author" jdbcType="INTEGER" property="author" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="ugc_status" jdbcType="INTEGER" property="ugcStatus" />
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+  </resultMap>
+	
+	<select id="getAttentionAndLikeTag" resultType="com.m2m.entity.ExtAttention">
+		select
+		c.id,
+		c.type,
+		t.long_time as longTime
+		from
+		content c,
+		topic t
+		where
+		c.forward_cid = t.id
+		and c.type = 3
+		and (
+		c.uid = #{uid}
+		or c.uid in
+		(select
+		f.target_uid
+		from
+		user_follow f
+		where f.source_uid = #{uid})
+		)
+		and
+		c.status != 1
+		and c.rights = 1
+		<if test="updateTime != 0">
+			and t.long_time <![CDATA[<]]>
+			#{updateTime}
+		</if>
+		UNION ALL
+		select u.tag_id,
+		16,
+		UNIX_TIMESTAMP(MAX(i.create_time))*1000 as longTime
+		from user_tag u, topic_tag_detail d, topic_image i,topic t, tmp_topic_exhibition e
+		where
+		u.tag_id=d.tag_id and d.status=0
+		and e.topic_image_id = i.id
+		and d.topic_id=e.topic_id
+		and t.id = e.topic_id
+		and
+		u.uid=#{uid}
+		and u.type=1
+		group by u.tag_id
+		<if test="updateTime != 0">
+			having
+			UNIX_TIMESTAMP(MAX(i.create_time)) * 1000 <![CDATA[<]]>
+			#{updateTime}
+		</if>
+		order by longtime desc
+		limit #{pageSize}
+	</select>
+	<select id="getTagOutList" resultType="com.m2m.entity.ExtTagOutInfo">
+		select 
+	    t.id,
+		t.tag_id as tagId,
+		i.fid,
+		i.image,
+		t.fragment,
+		t.type,
+		t.content_type as contentType,
+		i.extra,
+		i.topic_id as topicId,
+		i.create_time as createTime
+		from
+		tmp_topic_exhibition t,
+		topic_image i
+		where t.topic_image_id = i.id
+		and t.tag_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		order by t.id asc
+	</select>
+	<select id="getOutFragments" resultType="com.m2m.domain.TopicFragmentWithBLOBs">
+		select f.id,f.topic_id as
+		topicId,
+		f.uid,
+		f.fragment,
+		f.type,
+		f.content_type as contentType,
+		f.top_id as topId,
+		f.bottom_id as bottomId,
+		f.create_time as createTime,
+		f.at_uid as atUid,
+		f.source,
+		f.extra,
+		f.score,
+		f.status,
+		f.update_time as updateTime,
+		f.out_type as outType
+		,IF(f.type=0 and
+		f.content_type=1,IF(LOCATE('image_daycard',f.extra)!=0,IF(LOCATE('-',f.fragment_image)!=0,CONCAT(f.fragment_image,'-nrwl_rqcl'),CONCAT(f.fragment_image,'-nrwl_rq_ios')
+		),f.fragment_image),f.fragment_image)
+		as fragmentImage
+		from
+		topic_fragment f,topic t
+		where f.topic_id=t.id and f.topic_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		and f.status=1
+		and f.out_type=1
+		and t.rights!=2
+		and f.create_time <![CDATA[>=]]> DATE_ADD(t.out_time, interval -#{limitMinute} minute)
+		and ((f.content_type=1 and f.type=0
+		and f.fragment_image!='') or
+		(f.content_type!=1 or f.type!=0))
+		order by
+		f.topic_id,f.id desc
+	</select>
+	<select id="getNoCoreCircleMembers" resultType="com.m2m.entity.ExtIdCount">
+		select f.topic_id as id,COUNT(1) as count
+		from live_favorite f,topic t
+		where f.topic_id=t.id
+		and not FIND_IN_SET(f.uid, SUBSTR(t.core_circle
+		FROM 2 FOR
+		LENGTH(t.core_circle)-2))
+		and f.topic_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by f.topic_id
+	</select>
+	<select id="getCoreCircleMembers" resultType="com.m2m.entity.ExtIdCount">
+		select t.id,
+		LENGTH(t.core_circle)-LENGTH(REPLACE(t.core_circle,',','')) as
+		coreCount
+		from topic t where t.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+	</select>
+	<select id="getTopicUpdateCount" resultType="com.m2m.entity.ExtTopicReviewCount">
+		select f.topic_id as topicId,
+		COUNT(IF(t.uid=f.uid,TRUE,NULL)) as topicCount,
+		COUNT(IF(t.uid!=f.uid,TRUE,NULL)) as reviewCount
+		from topic t,topic_fragment f
+		where t.id=f.topic_id and t.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by f.topic_id
+	</select>
+	<select id="getLikeContentIdList" resultType="Long">
+		select distinct cid as id
+		from content_likes_details
+		where uid = #{uid}
+		and cid in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+	</select>
+	<select id="getUserFavoriteTags" resultType="com.m2m.entity.ExtTagTmp">
+		select distinct
+		t.tag_id as tagId,
+		t.tag_name as tagName,
+		t.cover_img as coverImg,
+		t.topic_count as kingdomCount,
+		t.user_count as personCount,
+		t.is_sys
+		from
+		tmp_tag_in_home t,
+		user_tag u
+		where t.tag_id = u.tag_id
+		<if test="idList!=null and idList.size() &gt; 0">
+			and t.tag_id in
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		and u.uid = #{uid}
+		and u.score > 20
+		and u.type not in (1, 2)
+		order by
+		t.is_sys desc
+		limit #{count}
+	</select>
+
+	<select id="getSysTagsInfo" resultType="com.m2m.entity.ExtTagTmp">
+		select distinct
+		t.tag_id as tagId,
+		t.tag_name as tagName,
+		t.cover_img as coverImg,
+		t.topic_count as kingdomCount,
+		t.user_count as personCount
+		from
+		tmp_tag_in_home t
+		where t.is_sys = 1
+		<if test="idList!=null and idList.size() &gt; 0">
+		    and t.tag_id in
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		and not exists (
+		select 1
+		from user_tag
+		where t.tag_id = tag_id
+		and type in(1,2)
+		and uid = #{uid}
+		)
+		limit #{count}
+	</select>
+	<select id="getUserDisLikeTagAndSubTagInfo" resultType="Long">
+		select t.id
+		FROM topic_tag t,
+		(SELECT tag_id FROM user_tag
+		WHERE uid=#{uid} and type = 2)
+		userlike
+		WHERE
+		t.id=userlike.tag_id OR t.pid=userlike.tag_id
+	</select>
+	<select id="getTagTopicInfo" resultType="com.m2m.entity.ExtTagTopicInfo">
+		select
+		o1.tag_id as tagId,
+		SUM(o1.topic_count) kingdomCount,
+		SUM(o1.price_sum) tagPrice,
+		o2.uid_count tagPersons
+		FROM
+		(SELECT
+		t4.id tag_id,
+		COUNT(DISTINCT t1.id) topic_count,
+		SUM(DISTINCT t1.price) price_sum
+		FROM
+		topic t1,
+		content t2,
+		topic_tag_detail t3,
+		topic_tag t4
+		WHERE t1.id = t2.forward_cid
+		AND t4.id = t3.tag_id
+		AND t2.type = 3
+		AND t1.id = t3.topic_id
+		AND t3.status = 0
+		and t4.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		GROUP BY t4.id) o1,
+		(SELECT x.tag_id,<![CDATA[x.userCount+FLOOR(y.readcount / 20)]]> uid_count
+		FROM (
+		SELECT m2.id as tag_id,COUNT(DISTINCT t1.uid) AS userCount
+		FROM (
+		SELECT t2.topic_id,t4.id
+		FROM topic_tag_detail t2,topic_tag t4
+		WHERE t2.status=0
+		AND t2.tag_id=t4.id
+		and t4.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		GROUP BY t4.id,t2.topic_id
+		) m2,topic_fragment t1
+		WHERE m2.topic_id=t1.topic_id
+		AND t1.status=1
+		GROUP BY m2.id
+		) X,(
+		SELECT m.id as tag_id,SUM(t3.read_count) AS readcount
+		FROM (
+		SELECT t2.topic_id,t4.id
+		FROM topic_tag_detail t2,topic_tag t4
+		WHERE t2.status=0
+		AND t2.tag_id=t4.id
+		and t4.id IN
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		GROUP BY t4.id,t2.topic_id
+		) m,content t3
+		WHERE m.topic_id=t3.forward_cid AND t3.type=3
+		GROUP BY m.id
+		) Y
+		WHERE x.tag_id=y.tag_id) o2
+		WHERE o1.tag_id = o2.tag_id
+		GROUP BY o1.tag_id
+	</select>
+	<update id="updateContentReadCount">
+		update content set
+		read_count=read_count+#{addReadCount},read_count_dummy=read_count_dummy+#{addReadCountDummy}
+		where id=#{cid}
+	</update>
+	<select id="getAttentionAndLikeTagCount" resultType="java.lang.Integer">
+		select COUNT(*) as count from(select
+		c.id,c.type
+		from content c,topic t
+		where
+		c.forward_cid=t.id and c.type=3
+		and (c.uid = #{uid}
+		or c.uid in (select
+		f.target_uid from user_follow f where
+		f.source_uid=#{uid})
+		) and
+		c.status != 1 and c.rights = 1
+		UNION
+		select u.tag_id,16
+		from user_tag
+		u,topic_tag_detail d,topic t2
+		where u.uid=#{uid}
+		and u.type=1
+		and
+		u.tag_id=d.tag_id
+		and d.status=0
+		and d.topic_id=t2.id
+		group by u.tag_id
+		having COUNT(d.topic_id)>0
+		) m
+	</select>
+	<select id="getNormalBanners" resultType="com.m2m.domain.AdBanner">
+		select b.id,b.ad_banner_name as adBannerName,
+		b.banner_position as bannerPosition,
+		b.ad_banner_height as adBannerHeight,
+		b.ad_banner_width as adBannerWidth,
+		b.status,b.type,
+		b.create_time as createTime
+		from ad_banner b LEFT JOIN (
+		select i.banner_id,1 as has
+		from ad_info i
+		where i.status=0
+		and i.effective_time&gt;now()
+		group by i.banner_id
+		) m on b.id=m.banner_id
+		where b.status=0 and b.type in (0,1)
+		and m.has is not NULL
+		and b.id not in
+		(select distinct d.banner_id from user_tag u,ad_tag d
+		where d.tag_id = u.tag_id and u.type = 2 and u.uid = #{uid})
+	</select>
+
+	<select id="getTopicTagByTypeAndUid" resultType="com.m2m.domain.TopicTag">
+		select t.id,t.tag,
+		t.is_rec as isRec,
+		t.is_sys as isSys,
+		t.status,t.create_time as createTime,
+		t.user_hobby_ids as userHobbyIds,
+		t.pid,t.order_num as orderNum,
+		t.cover_img as coverImg
+		from topic_tag t,user_tag u
+		where t.id = u.tag_id
+		and u.type=#{type}
+		and u.uid = #{uid}
+	</select>
+  	<select id="getHotContentListByType" resultMap="BaseResultMap">
+  	   SELECT c.id,
+		c.uid,
+		c.title,
+		c.forward_cid,
+		c.feeling ,
+		c.type,
+		c.conver_image,
+		c.forward_title,
+		c.forward_url,
+		c.content_type,
+		c.thumbnail,
+		c.hot_value,
+		c.like_count,
+		c.review_count,
+		c.person_count,
+		c.favorite_count,
+		c.read_count,
+		c.read_count_dummy,
+		c.authorization,
+		c.create_time,
+		c.status,
+		c.content,
+		c.rights,
+		c.update_time,
+		h.id AS hid
+		from high_quality_content h, content c LEFT JOIN topic t ON c.forward_cid = t.id and c.type=3
+	    where c.status != 1
+		and c.rights=1
+		and c.type=3
+		and c.id=h.cid
+  	    and c.forward_cid not in (
+      	select data from user_dislike where uid=#{uid} and is_like=0 and type=1
+      	<if test="blackTagIds!=''">
+      	union all
+      	select topic_id as data from topic_tag_detail where status=0 and tag_id in (${blackTagIds})
+      	</if>
+      )
+  	  <if test="ids!=null and ids.size() &gt; 0">
+       and h.id not in
+       <foreach close=")" collection="ids" item="id" open="(" separator=",">
+         #{id}
+       </foreach>
+     </if> 
+     <if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+       and c.uid not in
+       <foreach close=")" collection="blacklistUids" item="bid" open="(" separator=",">
+         #{bid}
+       </foreach>
+     </if>
+	 order by c.update_time desc limit #{start},#{pageSize}
+  	</select>
+	<select id="getKingdomRelevantInfo" resultType="com.m2m.entity.ExtKingdomRelevantInfo">
+		select o.topic_id as topicId,
+		sum(topic_count) as topicCount,
+		sum(review_count) as reviewCount,
+		sum(favorite_count) as favoriteCount,
+		sum(non_core_count) as nonCoreCount,
+		sum(core_count) as coreCount
+		from ((select
+		f.topic_id,count(if(t.uid=f.uid,TRUE,NULL)) as topic_count,
+		count(if(t.uid!=f.uid,TRUE,NULL)) as review_count,0 as
+		favorite_count,0 as non_core_count,
+		0 as core_count
+		from topic t,
+		topic_fragment f
+		where t.id=f.topic_id
+		and t.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by f.topic_id) union (
+		select t.topic_id,
+		0 as topic_count,
+		0 as review_count,
+		count(1) favorite_count,
+		0 as non_core_count,
+		0 as core_count
+		from live_favorite t
+		where t.uid=#{uid}
+		and t.topic_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by t.topic_id) union (
+		select f.topic_id,
+		0 as topic_count,
+		0 as review_count,
+		0 as favorite_count,
+		count(1) core_count,
+		0 as non_core_count
+		from live_favorite f,topic t
+		where f.topic_id=t.id
+		and not FIND_IN_SET(f.uid, SUBSTR(t.core_circle FROM 2 FOR LENGTH(t.core_circle)-2))
+		and f.topic_id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by f.topic_id) union (
+		select
+		t.id as topic_id,
+		0 as topic_count,
+		0 as review_count,
+		0 as favorite_count,
+		0 as non_core_count,
+		LENGTH(t.core_circle)-LENGTH(replace(t.core_circle,',','')) as core_count
+		from topic t where t.id in
+		<if test="idList!=null and idList.size() &gt; 0">
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+		group by t.id)) o group by o.topic_id
+	</select>
+  	
+  	<insert id="saveContent" parameterType="com.m2m.domain.Content"  useGeneratedKeys="true" keyProperty="id">
+    <!--
+      WARNING - @mbggenerated
+      This element is automatically generated by MyBatis Generator, do not modify.
+      This element was generated on Thu Jan 11 10:25:54 CST 2018.
+    -->
+    insert into content
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="uid != null">
+        uid,
+      </if>
+      <if test="forwardCid != null">
+        forward_cid,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="feeling != null">
+        feeling,
+      </if>
+      <if test="type != null">
+        type,
+      </if>
+      <if test="converImage != null">
+        conver_image,
+      </if>
+      <if test="forwardTitle != null">
+        forward_title,
+      </if>
+      <if test="forwardUrl != null">
+        forward_url,
+      </if>
+      <if test="contentType != null">
+        content_type,
+      </if>
+      <if test="thumbnail != null">
+        thumbnail,
+      </if>
+      <if test="hotValue != null">
+        hot_value,
+      </if>
+      <if test="personCount != null">
+        person_count,
+      </if>
+      <if test="reviewCount != null">
+        review_count,
+      </if>
+      <if test="likeCount != null">
+        like_count,
+      </if>
+      <if test="favoriteCount != null">
+        favorite_count,
+      </if>
+      <if test="readCount != null">
+        read_count,
+      </if>
+      <if test="readCountDummy != null">
+        read_count_dummy,
+      </if>
+      <if test="isTop != null">
+        is_top,
+      </if>
+      <if test="authorization != null">
+        authorization,
+      </if>
+      <if test="rights != null">
+        rights,
+      </if>
+      <if test="author != null">
+        author,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="updateId != null">
+        update_id,
+      </if>
+      <if test="ugcStatus != null">
+        ugc_status,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="uid != null">
+        #{uid,jdbcType=BIGINT},
+      </if>
+      <if test="forwardCid != null">
+        #{forwardCid,jdbcType=BIGINT},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="feeling != null">
+        #{feeling,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null">
+        #{type,jdbcType=INTEGER},
+      </if>
+      <if test="converImage != null">
+        #{converImage,jdbcType=VARCHAR},
+      </if>
+      <if test="forwardTitle != null">
+        #{forwardTitle,jdbcType=VARCHAR},
+      </if>
+      <if test="forwardUrl != null">
+        #{forwardUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="contentType != null">
+        #{contentType,jdbcType=INTEGER},
+      </if>
+      <if test="thumbnail != null">
+        #{thumbnail,jdbcType=VARCHAR},
+      </if>
+      <if test="hotValue != null">
+        #{hotValue,jdbcType=INTEGER},
+      </if>
+      <if test="personCount != null">
+        #{personCount,jdbcType=INTEGER},
+      </if>
+      <if test="reviewCount != null">
+        #{reviewCount,jdbcType=INTEGER},
+      </if>
+      <if test="likeCount != null">
+        #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="favoriteCount != null">
+        #{favoriteCount,jdbcType=INTEGER},
+      </if>
+      <if test="readCount != null">
+        #{readCount,jdbcType=INTEGER},
+      </if>
+      <if test="readCountDummy != null">
+        #{readCountDummy,jdbcType=INTEGER},
+      </if>
+      <if test="isTop != null">
+        #{isTop,jdbcType=INTEGER},
+      </if>
+      <if test="authorization != null">
+        #{authorization,jdbcType=INTEGER},
+      </if>
+      <if test="rights != null">
+        #{rights,jdbcType=INTEGER},
+      </if>
+      <if test="author != null">
+        #{author,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateId != null">
+        #{updateId,jdbcType=BIGINT},
+      </if>
+      <if test="ugcStatus != null">
+        #{ugcStatus,jdbcType=INTEGER},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+  
+  <insert id="saveContentImages" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="id">
+  	insert into content_image(cid,cover,image) values
+  	<foreach collection="list" index="index" item="item" open="" close="" separator=",">
+  		(#{item.cid},#{item.cover},#{item.image})
+  	</foreach> 
+  </insert>
+  
+  <update id="updateTopicContentCover">
+  	update content set conver_image=#{coverImage}
+  	where forward_cid = #{topicId}
+  	and type = 3
+  </update>
+  
+  <update id="updateContentUpdateTimeByTopicId">
+  	update content set update_time=#{updateTime}
+  	where forward_cid=#{topicId}
+  	and type=3
+  </update>
+  
+  <update id="updateContentUpdateIdByTopicId">
+  	update content set update_id=#{updateId}
+  	where forward_cid=#{topicId}
+  	and type=3
+  </update>
+  
+  <update id="updateTopicContentTitle">
+  	update content set title= #{title},content=#{title}
+  	where forward_cid=#{topicId}
+  	and type=3
+  </update>
+
+	<select id="getIndustryContentList" resultMap="BaseResultMap">
+		select
+		c.id,
+		c.uid,
+		c.title,
+		c.forward_cid,
+		c.feeling,
+		c.type,
+		c.conver_image,
+		c.forward_title,
+		c.forward_url,
+		c.content_type,
+		c.thumbnail,
+		c.hot_value,
+		c.like_count,
+		c.review_count,
+		c.person_count,
+		c.favorite_count,
+		c.read_count,
+		c.read_count_dummy,
+		c.authorization,
+		c.create_time,
+		c.status,
+		c.content,
+		c.rights,
+		c.update_time,
+		t.long_time as longTime
+		from
+		content c,
+		topic t,
+		user_profile u
+		where c.forward_cid = t.id
+		and c.type = 3
+		and u.uid = t.uid
+		and u.industry_id = #{industryId}
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and u.uid not in
+			<foreach close=")" collection="blacklistUids" item="bid"
+				open="(" separator=",">
+				#{bid}
+			</foreach>
+		</if>
+		order by t.long_time desc LIMIT ${(page-1)*pageSize},#{pageSize}
+	</select>
+
+	<select id="getHotContentList" resultType="com.m2m.entity.ExtHotContent">
+		select distinct a.id,3 as type,a.long_time as longTime from(
+		select t.id,t.long_time,t.uid from topic t,( select distinct t.uid from
+		topic t,live_favorite lf where t.id =lf.topic_id and lf.uid = #{uid} )
+		m where t.uid = m.uid
+		union
+		select t.id,t.long_time,t.uid from topic t,user_friend uf where t.uid =
+		uf.target_uid and uf.status=0 and uf.source_uid = #{uid}
+		union
+		select t.id,t.long_time,t.uid from topic t,
+		(select uf.target_uid from user_friend uf,( select uf.target_uid from
+		user_friend uf where uf.source_uid = #{uid}) uf1 where uf.source_uid
+		=uf1.target_uid ) s
+		,user_profile up
+		where t.uid = s.target_uid and s.target_uid = up.uid and up.industry_id = 3
+		and t.sub_type !=1
+		union
+		select t.id,t.long_time,t.uid from user_friend uf,user_friend_apply
+		ufa,topic t where uf.source_uid = ufa.target_uid and t.uid =
+		uf.target_uid and ufa.source_uid = #{uid} and t.sub_type !=1
+		union
+		select t.id,t.long_time,t.uid from high_quality_content h, content c,topic t
+		where c.forward_cid = t.id and c.status != 1
+		and c.rights=1 and c.type=3 and c.id=h.cid
+		) a
+		where
+		a.id not in(
+		select data from user_dislike where uid=#{uid} and is_like=0 and type=1
+			union all
+			select topic_id as data from topic_tag_detail where status=0 and tag_id in
+		(select tag_id from user_tag where uid = #{uid} and type = 2)
+		)
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and
+			a.uid not in
+			<foreach close=")" collection="blacklistUids" item="bid"
+				open="(" separator=",">
+				#{bid}
+			</foreach>
+		</if>
+		UNION ALL
+		select u.tag_id as id,16 as type,UNIX_TIMESTAMP(MAX(i.create_time))*1000 as longTime
+		from user_tag u, topic_tag_detail d, topic_image i,topic t,
+		tmp_topic_exhibition e
+		where u.tag_id=d.tag_id and d.status=0 and e.topic_image_id = i.id
+		and d.topic_id=e.topic_id and t.id = e.topic_id
+		and u.uid=#{uid} and u.type=1 group by u.tag_id
+		order by longtime desc
+		limit ${(page-1)*pageSize},#{pageSize}
+	</select>
+	<select id="getAcKingdomList" resultMap="BaseResultMap">
+		select
+		c.id,
+		c.uid,c.title, c.forward_cid, c.feeling, c.type, c.conver_image,
+		c.forward_title, c.forward_url,
+		c.content_type,c.update_id,c.update_time,
+		c.thumbnail, c.hot_value,
+		c.like_count,c.review_count,c.person_count,c.favorite_count,
+		c.read_count, c.read_count_dummy ,c.authorization, c.create_time,
+		c.status,c.content,c.rights,a.is_top
+		from content c left join topic t
+		on c.forward_cid = t.id and
+		c.type=3,topic_aggregation a where
+		a.sub_topic_id = c.forward_cid and
+		a.topic_id=#{topicId} and c.status
+		!= 1 and c.rights = 1
+		and c.type=3
+		order by a.is_top desc,c.update_id
+		desc limit
+		${(page-1)*pageSize},#{pageSize}
+	</select>
+	<select id="getAcKingdomImageList" resultType="com.m2m.entity.ExtAcImage">
+		select
+		ti.id,ti.topic_id as
+		topicId,ti.fid,tf.fragment,tf.type,tf.content_type as
+		contentType,ti.extra,ti.create_time
+		as createTime,tf.uid,t.title,ti.like_count as likeCount,ti.image
+		as
+		fragmentImage
+		from
+		topic_image ti,topic_aggregation ta,topic_fragment
+		tf,topic t
+		where
+		ti.topic_id = ta.sub_topic_id and
+		ta.topic_id=#{topicId} and
+		tf.id=ti.fid and t.id =ti.topic_id order by
+		ti.create_time desc,ti.fid
+		desc
+		limit ${(page-1)*pageSize},#{pageSize}
+	</select>
+	<select id="getAcKingdomImageLikeList" resultType="java.lang.Long">
+		select image_id from topic_fragment_like_his where uid = #{uid}
+		<if test="imageIdList!=null and imageIdList.size() &gt; 0">
+			and image_id in
+			<foreach close=")" collection="imageIdList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+	</select>
+	<select id="getMyOwnKingdom" resultMap="BaseResultMap">
+		select
+		c.id,
+		c.uid,c.title, c.forward_cid, c.feeling, c.type, c.conver_image,
+		c.forward_title, c.forward_url, c.content_type,
+		c.thumbnail,
+		c.hot_value,
+		c.like_count,c.review_count,c.person_count,c.favorite_count,
+		c.read_count, c.read_count_dummy ,c.authorization, c.create_time,
+		c.status,c.content,c.rights
+		from content c,(
+		select t.id,t.long_time
+		from topic t
+		where t.uid=#{uid,jdbcType=BIGINT}
+		and t.long_time &lt;
+		#{updateTime,jdbcType=BIGINT}
+		order by t.long_time desc limit 10
+		) m
+		where c.forward_cid=m.id and c.type=3
+		and c.status=0
+		order by
+		m.long_time desc
+	</select>
+	<select id="loadMyJoinKingdom" resultMap="BaseResultMap">
+		select
+		c.id, c.uid,c.title, c.forward_cid, c.feeling, c.type, c.conver_image,
+		c.forward_title, c.forward_url, c.content_type,
+		c.thumbnail, c.hot_value,
+		c.like_count,c.review_count,c.person_count,c.favorite_count,
+		c.read_count, c.read_count_dummy ,c.authorization, c.create_time,
+		c.status,c.content,c.rights
+		from content c,(
+		select t1.id,t1.long_time
+		from topic t1,live_favorite f
+		where t1.id=f.topic_id
+		and f.uid=#{uid,jdbcType=BIGINT}
+		and t1.uid!=#{uid,jdbcType=BIGINT}
+		and t1.long_time &lt; #{updateTime,jdbcType=BIGINT}
+		UNION
+		select t2.id,t2.long_time
+		from topic t2
+		where t2.uid!=#{uid,jdbcType=BIGINT}
+		and find_in_set(#{uid,jdbcType=BIGINT},SUBSTR(t2.core_circle FROM 2 FOR
+		LENGTH(t2.core_circle)-2))
+		and t2.long_time &lt; #{updateTime,jdbcType=BIGINT}
+		order by long_time desc limit 10
+		) m
+		where c.forward_cid=m.id and c.type=3
+		and c.status=0
+		order by m.long_time desc
+	</select>
+	<select id="loadNewestContent" resultMap="BaseResultMap">
+		select
+		c.id, c.uid,c.title, c.forward_cid, c.feeling, c.type, c.conver_image,
+		c.forward_title, c.forward_url,
+		c.content_type,c.update_id,c.update_time,
+		c.thumbnail, c.hot_value,
+		c.like_count,c.review_count,c.person_count,c.favorite_count,
+		c.read_count, c.read_count_dummy ,c.authorization, c.create_time,
+		c.status,c.content,c.rights
+		from content c join topic t on c.forward_cid = t.id and c.type=3
+		where t.long_time &lt; #{sinceId} and c.status != 1 and c.rights = 1
+		and c.type=3 and t.rights!=3
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and c.uid not in
+			<foreach close=")" collection="blacklistUids" item="bid"
+				open="(" separator=",">
+				#{bid}
+			</foreach>
+		</if>
+		and c.forward_cid not in(
+		select data from user_dislike where
+		uid=#{uid} and is_like=0 and type=1
+		)
+		order by c.update_id desc,c.id desc limit 10
+	</select>
+	<select id="getContentByTagId" resultMap="BaseResultMap">
+		select distinct
+		c.id,c.content,c.forward_cid,c.conver_image,td.last_price_incr from
+		topic_tag_detail tt,content c,topic_data td
+		where c.type = 3 and c.status = 0 and tt.status = 0 and tt.topic_id =
+		c.forward_cid
+		and c.forward_cid = td.topic_id and tt.tag_id = #{tagId} order by
+		td.last_price_incr desc limit #{pageSize}
+	</select>
+
+	<select id="getTagTopicList" resultMap="BaseResultMap">
+		select
+		c.id, c.uid,c.title, c.forward_cid, c.feeling, c.type, c.conver_image,
+		c.forward_title, c.forward_url, c.content_type,
+		c.thumbnail, c.hot_value,
+		c.like_count,c.review_count,c.person_count,c.favorite_count,
+		c.read_count, c.read_count_dummy ,c.authorization, c.create_time,
+		c.status,c.content,c.rights
+		FROM content c,(
+		SELECT distinct t.id,t.out_time
+		FROM topic t,topic_tag_detail td,topic_tag tt
+		WHERE t.id =td.topic_id AND tt.id = td.tag_id AND td.status=0 and tt.id =
+		#{tagId}
+		<if test="blacklistUids!=null and blacklistUids.size() &gt; 0">
+			and t.uid not in
+			<foreach close=")" collection="blacklistUids" item="bid"
+				open="(" separator=",">
+				#{bid}
+			</foreach>
+		</if>
+		ORDER BY t.out_time DESC LIMIT ${(page-1)*pageSize},#{pageSize}
+		) m
+		WHERE c.forward_cid=m.id AND c.type=3
+		AND c.status=0
+		ORDER BY m.out_time DESC
+	</select>
+</mapper>

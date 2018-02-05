@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtIndustryMapper">
+
+	<select id="getGuessIndustryByUid" resultType="com.m2m.domain.UserIndustry">
+		select
+		id,industry_name as industryName,cover_img as coverImg
+		,industry_description as industryDescription,
+		create_time as createTime,update_time as updateTime,sort
+		from user_industry
+		where id not in
+		(select industry_id from user_industry_wrong where uid = #{uid})
+		order by sort limit 1
+	</select>
+
+	<select id="getIndustryListByUid" resultType="com.m2m.domain.UserIndustry">
+		select
+		id,industry_name as industryName,
+		cover_img as coverImg,industry_description as industryDescription,
+		create_time as createTime,update_time as updateTime,sort
+		from user_industry order by id!=(select industry_id from user_profile where
+		uid = #{uid}),sort asc
+	</select>
+	
+</mapper>

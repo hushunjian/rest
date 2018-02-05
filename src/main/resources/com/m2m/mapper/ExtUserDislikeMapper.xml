@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtUserDislikeMapper">
+	<delete id="deleteExistUserLikeTags">
+		delete from user_dislike 
+		where uid= #{uid}
+		and is_like=1 
+		and type=2 
+		and data in
+		<foreach collection="tagIds" item="item" index="index" open="(" close=")" separator=",">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<insert id="batchInsertUserLikeTags">
+		insert into user_dislike (uid,data,is_like,type,create_time) values
+		<foreach collection="tagIds" item="item" index="index" open="" close="" separator=",">
+			(#{uid},#{item},1,2,now())
+		</foreach>
+	</insert>
+</mapper>

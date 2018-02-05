@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.m2m.mapper.ExtUserMapper">
+	<select id="getUserTotalCoinsByDay"  resultType="java.lang.Integer">
+		select sum(m.coin)
+		from (
+			select IFNULL(sum(r.coin),0) as coin
+			from rule_log  r
+			where r.uid=#{uid}
+			and r.create_time&gt;='${dayStr} 00:00:00'
+			and r.create_time&lt;='${dayStr} 23:59:59'
+			UNION
+			select IFNULL(sum(l.stealed_coins),0) as coin
+			from user_steal_log l
+			where l.uid=#{uid}
+			and l.create_time&gt;='${dayStr} 00:00:00'
+			and l.create_time&lt;='${dayStr} 23:59:59'
+		) m
+	</select>
+
+	<select id="countRuleLogByUidAndRuleCodeAndDay"  resultType="java.lang.Integer">
+		select count(1) 
+		from rule_log
+		where rule_code=#{ruleCode}
+		and uid=#{uid}
+		and create_time&gt;='${dayStr} 00:00:00'
+		and create_time&lt;='${dayStr} 23:59:59'
+	</select>
+	
+	<select id="countRuleLogByUidAndRuleCodeAndExt"  resultType="java.lang.Integer">
+		select count(1) 
+		from rule_log
+		where rule_code=#{ruleCode}
+		and uid=#{uid}
+		and ext=#{ext}
+	</select>
+	
+	<update id="addUserCoins">
+		update user_profile set available_coin=available_coin+#{addCoins} where uid=#{uid}
+	</update>
+	
+	<update id="modifyUserLevel">
+		update user_profile set level=#{targetLevel} where uid=#{uid}
+	</update>
+	
+	<insert id="insertUserNotice" parameterType="com.m2m.domain.UserNotice" useGeneratedKeys="true" keyProperty="id">
+    insert into user_notice
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="noticeType != null" >
+        notice_type,
+      </if>
+      <if test="fromUid != null" >
+        from_uid,
+      </if>
+      <if test="toUid != null" >
+        to_uid,
+      </if>
+      <if test="fromNickName != null" >
+        from_nick_name,
+      </if>
+      <if test="toNickName != null" >
+        to_nick_name,
+      </if>
+      <if test="tag != null" >
+        tag,
+      </if>
+      <if test="coverImage != null" >
+        cover_image,
+      </if>
+      <if test="summary != null" >
+        summary,
+      </if>
+      <if test="likeCount != null" >
+        like_count,
+      </if>
+      <if test="fromAvatar != null" >
+        from_avatar,
+      </if>
+      <if test="pushStatus != null" >
+        push_status,
+      </if>
+      <if test="readStatus != null" >
+        read_status,
+      </if>
+      <if test="cid != null" >
+        cid,
+      </if>
+      <if test="createTime != null" >
+        create_time,
+      </if>
+      <if test="extra != null" >
+        extra,
+      </if>
+      <if test="review != null" >
+        review,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="noticeType != null" >
+        #{noticeType,jdbcType=INTEGER},
+      </if>
+      <if test="fromUid != null" >
+        #{fromUid,jdbcType=BIGINT},
+      </if>
+      <if test="toUid != null" >
+        #{toUid,jdbcType=BIGINT},
+      </if>
+      <if test="fromNickName != null" >
+        #{fromNickName,jdbcType=VARCHAR},
+      </if>
+      <if test="toNickName != null" >
+        #{toNickName,jdbcType=VARCHAR},
+      </if>
+      <if test="tag != null" >
+        #{tag,jdbcType=VARCHAR},
+      </if>
+      <if test="coverImage != null" >
+        #{coverImage,jdbcType=VARCHAR},
+      </if>
+      <if test="summary != null" >
+        #{summary,jdbcType=VARCHAR},
+      </if>
+      <if test="likeCount != null" >
+        #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="fromAvatar != null" >
+        #{fromAvatar,jdbcType=VARCHAR},
+      </if>
+      <if test="pushStatus != null" >
+        #{pushStatus,jdbcType=INTEGER},
+      </if>
+      <if test="readStatus != null" >
+        #{readStatus,jdbcType=INTEGER},
+      </if>
+      <if test="cid != null" >
+        #{cid,jdbcType=BIGINT},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="extra != null" >
+        #{extra,jdbcType=VARCHAR},
+      </if>
+      <if test="review != null" >
+        #{review,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+
+	<select id="getBlacklist" resultType="java.lang.Long">
+		select target_uid from user_black_list t where t.uid=#{uid}
+	</select>
+	<update id="updateUserInvitationHisReceive">
+		update user_invitation_his set
+		status=1,receive_time=now() where id=#{id}
+	</update>
+
+	<update id="updateUserCoins">
+		update user_profile 
+		set available_coin = available_coin + #{price} 
+		where uid = #{uid}
+	</update>
+	
+	<select id="getUserHobbyInfoList" resultType="com.m2m.entity.ExtHobbyInfo">
+		select 	h.uid,
+				h.hobby,
+				d.value
+		from user_hobby h,dictionary d
+		where h.uid=#{uid}
+		and h.hobby=d.id
+	</select>
+
+	<select id="getUserFriendRecList" resultType="com.m2m.entity.ExtFriend">
+		select 	u.uid,
+				u.nick_name as nickName,
+				u.avatar,
+				u.avatar_frame as avatarFrame,
+				u.v_lv
+		from user_friend_reclist r,user_profile u
+		where r.rec_uid=u.uid
+		and r.uid=#{uid}
+		and r.status=0
+		order by r.id desc limit #{start},#{pageSize}
+	</select>
+	
+	<select id="statUserFriendIndustry" resultType="com.m2m.entity.ExtIndustryStat">
+		select 	m.id as industryId,
+				ui.industry_name as industry,
+				m.cc as friendCount
+		from (
+			select 	u.industry_id as id,
+					count(1) as cc
+			from user_friend f,user_profile u
+			where f.target_uid=u.uid
+			and f.source_uid=#{uid}
+			group by u.industry_id
+		) m LEFT JOIN user_industry ui on m.id=ui.id
+		order by ui.sort
+	</select>
+	
+	<select id="queryFriendContacts" resultType="com.m2m.entity.ExtFriendContactsInfo">
+		select 	u.uid,
+				u.nick_name as nickName,
+				u.avatar,
+				u.avatar_frame as avatarFrame,
+				u.v_lv,
+				u.name_group as nameGroup,
+				x.type,
+				x.content,
+				u.industry_id as industryId,
+				ui.industry_name as industry,
+				if(r.id is null,0,1) as isRec,
+				x.msgId
+		from (
+			select 	f.target_uid as uid,
+					f.create_time,
+					'' as content,
+					0 as type,
+					0 as msgId
+			from user_friend f
+			where f.source_uid=#{uid}
+			and not EXISTS (select 1 from user_friend_message m2 where m2.uid=#{uid} and m2.source_uid=f.target_uid)
+			UNION all
+			select 	m.source_uid as uid,
+					m.create_time,
+					m.content,
+					1 as type,
+					m.id as msgId
+			from user_friend_message m
+			where m.uid=#{uid}
+		) x,user_profile u 
+		LEFT JOIN user_industry ui on u.industry_id=ui.id
+		LEFT JOIN user_friend_reclist r on r.uid=#{uid} and r.rec_uid=u.uid and r.status=0
+		where x.uid=u.uid
+		<if test="industryId > 0" >
+			and u.industry_id = #{industryId}
+		</if>
+		order by x.type desc,x.create_time desc limit #{start},#{pageSize}
+	</select>
+
+	<select id="getExtUserProfileListByIds" resultType="com.m2m.entity.ExtUserProfile">
+		select
+		u.id ,
+		u.uid ,
+		u.mobile ,
+		u.nick_name as nickName ,
+		u.gender ,
+		u.birthday ,
+		u.avatar ,
+		u.years_id ,
+		u.star_id ,
+		u.social_class as socialClass ,
+		u.marriage_status as marriageStatus ,
+		u.bear_status as bearStatus ,
+		u.excellent ,
+		u.introduced ,
+		u.create_time as createTime ,
+		u.update_time
+		as updateTime ,
+		u.is_promoter as isPromoter ,
+		u.is_activate as
+		isActivate ,
+		u.referee_uid as refereeUid ,
+		u.qrcode ,
+		u.third_part_bind
+		as thirdPartBind ,
+		u.v_lv as vLv ,
+		u.is_client_login isClientLogin ,
+		u.channel ,
+		u.platform ,
+		u.register_version as registerVersion ,
+		u.like_gender as likeGender ,
+		u.age_group as ageGroup ,
+		u.occupation ,
+		u.name_group as nameGroup ,
+		u.mbti ,
+		u.level ,
+		u.available_coin as
+		availabeCoin ,
+		u.avatar_frame as avatarFrame ,
+		u.industry_id as industryId,
+		i.industry_name as industry
+		from user_profile u left join user_industry i on u.industry_id  = i.id 
+		<if test="idList!=null and idList.size() &gt; 0">
+			where u.uid in
+			<foreach close=")" collection="idList" item="ids" open="("
+				separator=",">
+				#{ids}
+			</foreach>
+		</if>
+	</select>
+	
+	<select id="getExtUserProfileByUid" resultType="com.m2m.entity.ExtUserProfile">
+		select 	u.id,
+				u.uid,
+				u.mobile,
+				u.nick_name as nickName,
+				u.gender,
+				u.birthday,
+				u.avatar,
+				u.years_id as yearsId,
+				u.star_id as starId,
+				u.social_class as socialClass,
+				u.marriage_status as marriageStatus,
+				u.bear_status as bearStatus,
+				u.excellent,
+				u.introduced,
+				u.create_time as createTime,
+				u.update_time as updateTime,
+				u.is_promoter as isPromoter,
+				u.is_activate as isActivate,
+				u.referee_uid as refereeUid,
+				u.qrcode,
+				u.third_part_bind as thirdPartBind,
+				u.v_lv as vLv,
+				u.is_client_login as isClientLogin,
+				u.channel,
+				u.platform,
+				u.register_version as registerVersion,
+				u.like_gender as likeGender,
+				u.age_group as ageGroup,
+				u.occupation,
+				u.name_group as nameGroup,
+				u.mbti,
+				u.level,
+				u.available_coin as availabeCoin,
+				u.avatar_frame as avatarFrame,
+				u.industry_id as industryId,
+				i.industry_name as industry
+		from user_profile u left join user_industry i on u.industry_id  = i.id
+		where u.uid=#{uid}
+	</select>
+	
+	<select id="getAppUiControl" resultType="com.m2m.domain.AppUiControl">
+		select * from app_ui_control where status = 0 and start_time&lt;=now() and end_time&gt;=now()
+	</select>
+	
+	<select id="getCanStealTopicId" resultType="java.lang.Long">
+		select 
+		t.id as topicId
+		from 
+		topic t,
+		topic_data d 
+		LEFT JOIN
+		(
+		SELECT 
+		topic_id
+		FROM
+		user_steal_log t1
+		WHERE
+		t1.uid = #{uid}
+		AND t1.create_time &gt;=#{todayStart,jdbcType=TIMESTAMP}
+		) t2
+		ON
+		d.topic_id != t2.topic_id
+		where 
+		t.id=d.topic_id
+		and t.uid!= #{uid}
+		and t.rights!=2 
+		and d.steal_price>0 
+		and t2.topic_id is not null
+	</select>
+	
+	<select id="getCanSpeakTopicId" resultType="java.lang.Long">
+		SELECT id FROM topic WHERE uid != #{uid} and rights!=2  ORDER BY update_time DESC LIMIT 100
+	</select>
+</mapper>
